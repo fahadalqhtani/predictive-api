@@ -10,9 +10,9 @@ encoder = joblib.load("encoder.pkl")
 selected_features = joblib.load("selected_features.pkl")
 
 # ------------------ FIREBASE SETUP ------------------ #
-cred = credentials.Certificate("serviceAccountKey.json")
+cred = credentials.Certificate("projectlot.json")
 firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://iot-sensors-48dda-default-rtdb.asia-southeast1.firebasedatabase.app/'
+    "databaseURL": "https://iot-sensors-48dda-default-rtdb.asia-southeast1.firebasedatabase.app/"
 })
 
 app = Flask(__name__)
@@ -122,3 +122,4 @@ sensor_ref.listen(listener)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
+

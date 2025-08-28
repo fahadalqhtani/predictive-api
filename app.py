@@ -1,6 +1,8 @@
 from flask import Flask
 import joblib
 import numpy as np
+import os
+import json
 import firebase_admin
 from firebase_admin import credentials, db
 
@@ -9,10 +11,14 @@ model = joblib.load("decision_tree.pkl")
 encoder = joblib.load("encoder.pkl")
 selected_features = joblib.load("selected_features.pkl")
 
-# ------------------ FIREBASE SETUP ------------------ #
-cred = credentials.Certificate("projectlot.json")
+# قراءة JSON من متغير البيئة
+firebase_json = os.getenv("GOOGLE_CREDENTIALS")
+cred_dict = json.loads(firebase_json)
+
+cred = credentials.Certificate(cred_dict)
+
 firebase_admin.initialize_app(cred, {
-    "databaseURL": "https://iot-sensors-48dda-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    'databaseURL': 'https://iot-sensors-48dda-default-rtdb.asia-southeast1.firebasedatabase.app/'
 })
 
 app = Flask(__name__)
@@ -122,4 +128,5 @@ sensor_ref.listen(listener)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
+
 

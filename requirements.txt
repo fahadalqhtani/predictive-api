@@ -2,3 +2,6 @@ flask
 joblib
 scikit-learn
 numpy
+firebase-admin
+
+

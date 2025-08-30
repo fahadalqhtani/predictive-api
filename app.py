@@ -11,21 +11,7 @@ encoder = joblib.load("encoder.pkl")
 selected_features = joblib.load("selected_features.pkl")
 
 # ------------------ FIREBASE SETUP ------------------ #
-cred_dict = {
-    "type": os.getenv("G_TYPE"),
-    "project_id": os.getenv("G_PROJECT_ID"),
-    "private_key_id": os.getenv("G_PRIVATE_KEY_ID"),
-    "private_key": os.getenv("G_PRIVATE_KEY").replace("\\n", "\n"),
-    "client_email": os.getenv("G_CLIENT_EMAIL"),
-    "client_id": os.getenv("G_CLIENT_ID"),
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": os.getenv("G_CLIENT_CERT_URL"),
-    "universe_domain": "googleapis.com"
-}
-
-cred = credentials.Certificate(cred_dict)
+cred = credentials.Certificate("/etc/secrets/projectIot.json")
 
 firebase_admin.initialize_app(cred, {
     'databaseURL': 'https://iot-sensors-48dda-default-rtdb.asia-southeast1.firebasedatabase.app/'
@@ -129,4 +115,5 @@ sensor_ref.listen(listener)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
+
 

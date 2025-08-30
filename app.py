@@ -1,8 +1,6 @@
 from flask import Flask
 import joblib
 import numpy as np
-import os
-import json
 import firebase_admin
 from firebase_admin import credentials, db
 
@@ -11,9 +9,20 @@ model = joblib.load("decision_tree.pkl")
 encoder = joblib.load("encoder.pkl")
 selected_features = joblib.load("selected_features.pkl")
 
-# قراءة JSON من متغير البيئة
-firebase_json = os.getenv("GOOGLE_CREDENTIALS")
-cred_dict = json.loads(firebase_json)
+# ------------------ FIREBASE SETUP ------------------ #
+cred_dict = {
+    "type": os.getenv("G_TYPE"),
+    "project_id": os.getenv("G_PROJECT_ID"),
+    "private_key_id": os.getenv("G_PRIVATE_KEY_ID"),
+    "private_key": os.getenv("G_PRIVATE_KEY").replace("\\n", "\n"),
+    "client_email": os.getenv("G_CLIENT_EMAIL"),
+    "client_id": os.getenv("G_CLIENT_ID"),
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": os.getenv("G_CLIENT_CERT_URL"),
+    "universe_domain": "googleapis.com"
+}
 
 cred = credentials.Certificate(cred_dict)
 
@@ -24,7 +33,6 @@ firebase_admin.initialize_app(cred, {
 app = Flask(__name__)
 
 def process_sensor_data(equipment_name, temp, vib, pres, last_temp, last_vib, last_pres):
-    # حساب المشتقات
     temp_change = temp - last_temp
     vib_change  = vib - last_vib
     pres_change = pres - last_pres
@@ -51,14 +59,12 @@ def process_sensor_data(equipment_name, temp, vib, pres, last_temp, last_vib, la
     X = np.array([[feature_row[f] for f in selected_features]])
     risk = model.predict_proba(X)[0][1] * 100
 
-    # منطق التوصية
     recommended_action = "None"
     status = "normal"
 
     if risk > 85:
         status = "warning"
 
-        # تحديد أي حساس السبب
         node_indicator = model.decision_path(X)
         feature_index = model.tree_.feature
         node_ids = node_indicator.indices
@@ -66,16 +72,13 @@ def process_sensor_data(equipment_name, temp, vib, pres, last_temp, last_vib, la
 
         dominant_feature = selected_features[feature_index[last_split]]
 
-        # خريطة الميزات → المستشعر الأساسي
         mapping = {
             "temperature": "temperature",
             "temp_change": "temperature",
             "temp_change_pct": "temperature",
-
             "vibration": "vibration",
             "vibration_change": "vibration",
             "vibration_change_pct": "vibration",
-
             "pressure": "pressure",
             "pressure_change": "pressure",
             "pressure_change_pct": "pressure",
@@ -106,7 +109,6 @@ def listener(event):
     vib = float(data.get("viberation", 0))
     pres = float(data.get("pressure", 0))
 
-    # جلب آخر قراءة محفوظة
     last_data = db.reference(f"Predictions/{equipment}/last").get() or {"temp":0,"vib":0,"pres":0}
 
     result = process_sensor_data(
@@ -114,7 +116,6 @@ def listener(event):
         last_data["temp"], last_data["vib"], last_data["pres"]
     )
 
-    # تحديث التوقعات في Firebase
     db.reference(f"Predictions/{equipment}").set({
         "risk_score": result["risk_score"],
         "status": result["status"],
@@ -122,12 +123,8 @@ def listener(event):
         "last": {"temp": temp, "vib": vib, "pres": pres}
     })
 
-# ربط الـ Listener مع Sensors
 sensor_ref = db.reference("Sensors")
 sensor_ref.listen(listener)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
-
-
-

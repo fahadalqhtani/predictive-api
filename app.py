@@ -3,6 +3,7 @@ import joblib
 import numpy as np
 import firebase_admin
 from firebase_admin import credentials, db
+import os
 
 # ------------------ ML MODELS ------------------ #
 model = joblib.load("decision_tree.pkl")
@@ -128,3 +129,4 @@ sensor_ref.listen(listener)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
+
